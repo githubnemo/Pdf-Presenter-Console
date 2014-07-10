@@ -129,8 +129,12 @@ namespace pdfpc.View.Behaviour {
         /**
          * An external command link has been clicked
          */
-        protected void on_clicked_external_command( Gdk.Rectangle link_rect, uint source_page_number, string command, string arguments ) {
-            //@TODO: Implement
+        protected void on_clicked_external_command( Gdk.Rectangle link_rect, uint source_page_number, string command ) {
+			try {
+				Process.spawn_command_line_async(command);
+			} catch (SpawnError e) {
+				stdout.printf ("Error launching command: %s\n", e.message);
+			}
         }
     }
 }

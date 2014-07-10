@@ -42,7 +42,7 @@ namespace pdfpc.View.Behaviour {
          * Be careful while handling these, as requested code to be execute may
          * be malicious.
          */
-        public signal void clicked_external_command( Gdk.Rectangle link_rect, uint source_page_number, string command, string arguments );
+        public signal void clicked_external_command( Gdk.Rectangle link_rect, uint source_page_number, string command );
 
         /**
          * Emitted whenever the mouse entered a pdf link
@@ -159,11 +159,10 @@ namespace pdfpc.View.Behaviour {
                 case Poppler.ActionType.LAUNCH:
                     unowned Poppler.ActionLaunch* action = (Poppler.ActionLaunch*)mapping.action;
                     // Fire the appropriate signal
-                    this.clicked_external_command( 
+                    this.clicked_external_command(
                         this.convert_poppler_rectangle_to_gdk_rectangle( mapping.area ),
                         this.target.get_current_slide_number(),
-                        action.file_name,
-                        action.params
+                        action.file_name
                     );
                 break;
             }
