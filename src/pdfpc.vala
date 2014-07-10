@@ -4,17 +4,17 @@
  * This file is part of pdfpc.
  *
  * Copyright (C) 2010-2011 Jakob Westhoff <jakob@westhoffswelt.de>
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -83,11 +83,11 @@ namespace pdfpc {
          *
 		 * Returns the name of the pdf file to open (or null if not present)
          */
-        protected string? parse_command_line_options( string[] args ) {
-            var context = new OptionContext( "<pdf-file>" );
+        protected string? parse_command_line_options( string[] args, out string? notesPdfFile ) {
+            var context = new OptionContext( "<pdf-file> [<notes-pdf>]" );
 
             context.add_main_entries( options, null );
-            
+
             try {
                 context.parse( ref args );
             }
@@ -96,6 +96,9 @@ namespace pdfpc {
                 stderr.printf( "%s", context.get_help( true, null ) );
                 Posix.exit( 1 );
             }
+			if ( args.length == 3 ) {
+				notesPdfFile = args[2];
+			}
             if ( args.length < 2 ) {
 				return null;
             } else {
@@ -139,7 +142,8 @@ namespace pdfpc {
             Gdk.threads_init();
             Gtk.init( ref args );
 
-            string pdfFilename = this.parse_command_line_options( args );
+			string pdfNotesFilename = "";
+            string pdfFilename = this.parse_command_line_options( args, out pdfNotesFilename );
             if (Options.list_actions) {
 				stdout.printf("Config file commands accepted by pdfpc:\n");
 				string[] actions = PresentationController.getActionDescriptions();
@@ -162,8 +166,16 @@ namespace pdfpc {
             stdout.printf( "Initializing rendering...\n" );
 
             var metadata = new Metadata.Pdf( pdfFilename );
-            if ( Options.duration != 987654321u )
+            var presenter_metadata = new Metadata.Pdf( pdfFilename );
+
+			if ( pdfNotesFilename != null ) {
+				presenter_metadata = new Metadata.Pdf( pdfNotesFilename );
+			}
+
+            if ( Options.duration != 987654321u ) {
                 metadata.set_duration(Options.duration);
+                presenter_metadata.set_duration(Options.duration);
+			}
 
             // Initialize global controller and CacheStatus, to manage
             // crosscutting concerns between the different windows.
@@ -182,19 +194,19 @@ namespace pdfpc {
                 else
                     presenter_monitor    = (screen.get_primary_monitor() + 1) % 2;
                 presentation_monitor = (presenter_monitor + 1) % 2;
-                this.presentation_window = 
+                this.presentation_window =
                     this.create_presentation_window( metadata, presentation_monitor );
-                this.presenter_window = 
-                    this.create_presenter_window( metadata, presenter_monitor );
+                this.presenter_window =
+                    this.create_presenter_window( presenter_metadata, presenter_monitor );
             } else if (Options.windowed && !Options.single_screen) {
                 this.presenter_window =
-                    this.create_presenter_window( metadata, -1 );
+                    this.create_presenter_window( presenter_metadata, -1 );
                 this.presentation_window =
                     this.create_presentation_window( metadata, -1 );
             } else {
                     if ( !Options.display_switch)
                         this.presenter_window =
-                            this.create_presenter_window( metadata, -1 );
+                            this.create_presenter_window( presenter_metadata, -1 );
                     else
                         this.presentation_window =
                             this.create_presentation_window( metadata, -1 );
@@ -206,7 +218,7 @@ namespace pdfpc {
                 this.presentation_window.show_all();
                 this.presentation_window.update();
             }
-            
+
             if ( this.presenter_window != null ) {
                 this.presenter_window.show_all();
                 this.presenter_window.update();
